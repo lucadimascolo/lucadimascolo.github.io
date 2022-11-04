@@ -1,0 +1,77 @@
+:root {
+  --peach:      #E0AD8F;
+  --yellow:     #FAC670;
+  --pale-blue:  #90C3CE;
+  --light-grey: #75787D;
+  --dark-grey:  #1B1A19;
+  --dark-red:   #F37926;
+  --pale-white: #F3F3F3;
+  --main: var(--yellow);
+}
+
+html, body {
+  border:  0;
+  margin:  0;
+  padding: 0;
+}
+
+html {scroll-behavior: smooth;}
+
+strong {font-weight: 700;}
+
+.title {height: 100vh;}
+
+body {
+  background-color: var(--pale-white);
+  color: var(--dark-grey);
+}
+
+a {
+  color: var(--light-grey);
+  text-decoration: none;
+  -webkit-transition: all 0.20s ease-in-out;
+     -moz-transition: all 0.20s ease-in-out;
+      -ms-transition: all 0.20s ease-in-out;
+          transition: all 0.20s ease-in-out;
+}
+
+a::before {
+  background: none;
+  text-decoration: none;
+}
+
+a:hover {
+  color:  var(--yellow);
+  text-decoration: none;
+  -webkit-transition: all 0.20s ease-in-out;
+     -moz-transition: all 0.20s ease-in-out;
+      -ms-transition: all 0.20s ease-in-out;
+          transition: all 0.20s ease-in-out;
+}
+
+a i {
+     font-size: 15pt;
+  margin-right: 10pt;
+}
+
+.name {
+  white-space: nowrap;
+      z-index: 2;
+     position: relative;
+        color: inherit;
+}
+
+.name::before {
+    position: absolute;
+     z-index:       -1;
+        left:     -1pt;
+      bottom:       9%;
+      height:      34%;
+       width: calc(100% + 2pt);
+  background:      var(--main);
+   transform: rotate(-3.00deg);
+     content:       '';
+}
+
+.back-one {background-color: var(--yellow);}
+.back-two {background-color: var(--pale-blue);}
