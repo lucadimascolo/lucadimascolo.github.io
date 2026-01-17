@@ -1,0 +1,36 @@
+:root {
+    --highlight: #d97757;
+    --bg: rgb(23 23 23); /* neutral-900 */
+    --text: rgb(245 245 245); /* neutral-100 */
+    --text-muted: rgb(163 163 163); /* neutral-400 */
+    --text-dim: rgb(115 115 115); /* neutral-500 */
+}
+
+.link-underline {
+    color: var(--text-muted);
+    border-bottom: 1px dotted;
+    text-decoration: none;
+    transition: color 300ms cubic-bezier(0.4, 0, 0.2, 1), border-bottom-color 300ms ease-out;
+}
+
+.link-underline:hover {
+    color: var(--highlight);
+    border-bottom-color: transparent;
+}
+
+.link-icon {
+    color: var(--text-muted);
+    transition: color 300ms ease-in-out;
+}
+
+.link-icon:hover {
+    color: var(--highlight);
+}
+
+.link-nav {
+    transition: color 300ms ease-in-out;
+}
+
+.link-nav:hover {
+    color: var(--highlight);
+}

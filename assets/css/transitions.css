@@ -1,0 +1,33 @@
+.page-content {
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+.page-exit {
+    animation: fadeOut 0.3s ease-in-out forwards;
+}
+
+#automaton {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.canvas-exit {
+    opacity: 0 !important;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
