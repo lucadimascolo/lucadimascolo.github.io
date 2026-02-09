@@ -2,14 +2,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropdown = document.querySelector('.dropdown');
     const toggle = document.querySelector('.dropdown-toggle');
 
-    toggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        dropdown.classList.toggle('open');
-    });
+    if (!window.matchMedia('(hover: hover)').matches) {
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+        });
 
-    document.addEventListener('click', () => {
-        dropdown.classList.remove('open');
-    });
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('open');
+        });
+    }
 
     const links = document.querySelectorAll('nav a');
 

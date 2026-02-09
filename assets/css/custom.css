@@ -42,12 +42,22 @@
     transition: opacity 200ms ease, transform 200ms ease, visibility 200ms;
 }
 
-.dropdown:hover .dropdown-toggle,
+@media (hover: hover) {
+    .dropdown:hover .dropdown-toggle {
+        color: var(--text-dim);
+    }
+
+    .dropdown:hover .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+}
+
 .dropdown.open .dropdown-toggle {
     color: var(--text-dim);
 }
 
-.dropdown:hover .dropdown-menu,
 .dropdown.open .dropdown-menu {
     opacity: 1;
     visibility: visible;
