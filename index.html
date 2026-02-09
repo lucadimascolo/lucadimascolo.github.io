@@ -15,9 +15,22 @@
 
     <body class="bg-neutral-900 text-neutral-100 overflow-hidden">
 
-        <canvas id="automaton" class="fixed inset-0 z-0"></canvas>
+        <nav class="fixed top-0 left-0 right-0 z-20 flex justify-center py-4">
+            <div class="dropdown relative">
+                <button class="dropdown-toggle relative font-mono text-xs text-neutral-400 tracking-wide hover:text-neutral-500 transition-colors duration-300">
+                    projects<i class="fa-solid fa-chevron-down text-[0.6rem] absolute ml-1.5 top-1/2 -translate-y-1/2"></i>
+                </button>
+                <ul class="dropdown-menu absolute left-0 right-0 pt-3 py-1">
+                    <li>
+                        <a href="https://lucadimascolo.github.io/socca" target="_blank" rel="noreferrer" class="block py-2 text-xs font-mono text-center text-neutral-400 transition-colors duration-200">
+                            <span class="relative"><span class="link-icon">socca</span><i class="fa-solid fa-arrow-up-right-from-square text-[0.6rem] absolute ml-1 top-1/2 -translate-y-1/2"></i></span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
 
-        <main class="page-content relative z-10 h-screen flex items-center justify-center">
+        <main class="page-content h-screen flex items-center justify-center">
             <div class="max-w-xl px-4 py-20">
                 <h1 class="mt-16 text-6xl tracking-tight md:text-6xl text-neutral-200">
                     Ciao, this is Luca<span style="color: var(--highlight)">.</span>
@@ -53,7 +66,6 @@
             </div>
         </main>
 
-        <script src="assets/js/automaton.js"></script>
         <script src="assets/js/transitions.js"></script>
     </body>
 </html>

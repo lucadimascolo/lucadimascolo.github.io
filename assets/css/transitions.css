@@ -6,14 +6,6 @@
     animation: fadeOut 0.3s ease-in-out forwards;
 }
 
-#automaton {
-    transition: opacity 0.3s ease-in-out;
-}
-
-.canvas-exit {
-    opacity: 0 !important;
-}
-
 @keyframes fadeIn {
     from {
         opacity: 0;

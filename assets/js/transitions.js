@@ -5,18 +5,15 @@ document.addEventListener('DOMContentLoaded', () => {
         link.addEventListener('click', (e) => {
             const href = link.getAttribute('href');
 
-            // Skip if it's the current page
+            // Skip external links and current page
+            if (link.getAttribute('target') === '_blank') return;
             if (window.location.pathname.endsWith(href)) return;
 
             e.preventDefault();
 
             const content = document.querySelector('.page-content');
-            const canvas = document.getElementById('automaton');
 
             content.classList.add('page-exit');
-            if (canvas) {
-                canvas.classList.add('canvas-exit');
-            }
 
             setTimeout(() => {
                 window.location.href = href;
