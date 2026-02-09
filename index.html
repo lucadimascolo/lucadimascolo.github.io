@@ -35,7 +35,9 @@
             </div>
         </nav>
 
-        <main class="page-content h-screen flex items-center justify-center">
+        <canvas id="contours" class="fixed inset-0 z-0"></canvas>
+
+        <main class="page-content relative z-10 h-screen flex items-center justify-center">
             <div class="max-w-xl px-4 py-20">
                 <h1 class="mt-16 text-6xl tracking-tight md:text-6xl text-neutral-200">
                     Ciao, this is Luca<span style="color: var(--highlight)">.</span>
@@ -71,6 +73,7 @@
             </div>
         </main>
 
+        <script src="assets/js/contours.js"></script>
         <script src="assets/js/transitions.js"></script>
     </body>
 </html>
