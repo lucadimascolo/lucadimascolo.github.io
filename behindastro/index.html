@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>behindAstro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['"Space Mono"', 'monospace'],
+          },
+          colors: {
+            cream: '#f5f0e8',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="bg-cream text-neutral-800 font-mono min-h-screen flex flex-col">
+
+  <!-- Hero -->
+  <section class="max-w-3xl mx-auto px-6 pt-24 pb-20">
+    <h1 class="text-3xl font-bold leading-snug mb-8">
+      Funding the people<br />
+      behind the science.
+    </h1>
+    <p class="text-sm leading-relaxed text-neutral-600 max-w-xl">
+      Large astronomy projects succeed not just because of telescopes,
+      but because of the people who coordinate, facilitate, and sustain them — project managers,
+      consortium coordinators, and science operations specialists.<br/>
+      Across Europe, these roles
+      have no long-term funding home.<br/>
+      <span class="text-neutral-900 font-bold">behindAstro</span> wants to change that.
+    </p>
+  </section>
+
+  <div class="max-w-3xl mx-auto px-6 w-full">
+    <hr class="border-dotted border-neutral-300" />
+  </div>
+
+  <!-- About -->
+  <section id="about" class="max-w-3xl mx-auto px-6 py-20">
+    <p class="text-xs tracking-widest uppercase text-neutral-400 mb-8">// about</p>
+
+    <div class="space-y-10">
+      <div>
+        <h2 class="text-sm font-bold mb-3">The problem</h2>
+        <p class="text-sm leading-relaxed text-neutral-600">
+          The academic funding landscape invests heavily in research and research infrastructure:
+          instruments, computing, and data systems. What it does <em>not</em> fund are the
+          long-term positions of the people who make large-scale projects function — science
+          project managers, consortium coordinators, and science operations specialists
+          whose work underpins every major pan-European facility, instrument, survey, and consortium.
+          This gap is endemic across almost all European countries and affects virtually
+          every large astronomical project.
+        </p>
+      </div>
+
+      <div>
+        <h2 class="text-sm font-bold mb-3">The gap</h2>
+        <p class="text-sm leading-relaxed text-neutral-600">
+          These roles do not fit neatly into existing grant categories. They are not "research",
+          so they cannot be covered by research grants. They are not "infrastructure hardware",
+          so capital investment schemes do not apply. Yet without them, the research cannot happen.
+          This gap is structural and systemic — it shows up across funding agencies and national
+          contexts wherever large-scale astronomy collaborations depend on sustained coordination
+          and technical expertise.
+        </p>
+      </div>
+
+      <div>
+        <h2 class="text-sm font-bold mb-3">The consequences</h2>
+        <p class="text-sm leading-relaxed text-neutral-600">
+          The absence of stable funding has real costs. When positions turn over repeatedly,
+          projects are forced to rebuild institutional knowledge and personal networks from scratch —
+          leading to delays, increased costs, and loss of continuity. The uncertainty also
+          drives talented people out of astronomy altogether: academia is competing with industry
+          for both technical experts and managers, and precarious contracts are a losing proposition.
+          The toll on the welfare of the people in these roles, and on the projects that depend
+          on them, is significant and growing.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mt-auto px-6 py-6 max-w-3xl mx-auto w-full border-t border-dotted border-neutral-300">
+    <p class="text-neutral-400 text-xs flex items-center justify-center gap-1.5">
+      vibe-coded with Claude Code
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 12" class="inline-block w-4 h-3" aria-label="Claude Code">
+        <g fill="#CC7A5A">
+          <rect x="2"  y="2" width="12" height="7"/>
+          <rect x="0"  y="5" width="2"  height="2"/>
+          <rect x="14" y="5" width="2"  height="2"/>
+          <rect x="2"  y="9" width="2"  height="2"/>
+          <rect x="5"  y="9" width="2"  height="2"/>
+          <rect x="9"  y="9" width="2"  height="2"/>
+          <rect x="12" y="9" width="2"  height="2"/>
+        </g>
+        <rect x="4"  y="3" width="2" height="3" fill="white"/>
+        <rect x="10" y="3" width="2" height="3" fill="white"/>
+      </svg>
+    </p>
+  </footer>
+
+</body>
+</html>
