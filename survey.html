@@ -21,58 +21,149 @@
             body {
                 background: var(--bg);
                 color: var(--text);
-                font-family: 'Courier New', monospace;
+                font-family: Helvetica, Arial, sans-serif;
             }
             table.grid-table {
                 border-collapse: separate;
                 border-spacing: 6px;
+                table-layout: fixed;
+            }
+            .grid-table tr {
+                height: 80px;
+            }
+            .grid-table td {
+                text-align: center;
+                vertical-align: middle;
+            }
+            .grid-table th,
+            .grid-table td {
+                width: 68px;
             }
             .cell-label {
                 font-size: 0.8rem;
                 line-height: 1.05rem;
                 color: var(--text-muted);
                 white-space: pre-line;
+                overflow-wrap: break-word;
+                hyphens: auto;
                 text-align: center;
                 padding-bottom: 4px;
             }
-            .row-label {
-                font-size: 0.85rem;
-                color: var(--text-muted);
-                text-align: right;
+            .row-labels {
+                position: absolute;
+                right: 100%;
+                /* The table's border-spacing (6px) inserts a gap above the first row too,
+                   so the label column needs the same offset and inter-row gap to line up. */
+                top: 6px;
+                width: 190px;
                 padding-right: 12px;
-                max-width: 190px;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
             }
-            .vote-swatch {
+            .row-labels .label-slot {
+                height: 80px;
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                font-size: 0.85rem;
+                line-height: 1.1rem;
+                color: var(--text-muted);
+                white-space: pre-line;
+                text-align: right;
+            }
+            .cell-stack {
+                position: relative;
                 width: 68px;
                 height: 68px;
+                margin: 0 auto;
+            }
+            .cell-stack > * {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 68px;
+                height: 68px;
+                will-change: opacity;
+                transition: opacity 750ms cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .vote-swatch {
                 border-radius: 8px;
-                border: 2px dashed rgb(115 115 115 / 0.5);
-                background: transparent;
+                border: 2px solid transparent;
                 cursor: pointer;
-                transition: background-color 200ms ease, border-color 200ms ease, transform 100ms ease;
+                opacity: 1;
+                pointer-events: auto;
             }
             .vote-swatch:active {
                 transform: scale(0.94);
             }
             .result-swatch {
-                width: 68px;
-                height: 68px;
                 border-radius: 8px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 font-size: 0.8rem;
                 font-weight: 600;
-                color: rgb(23 23 23 / 0.75);
+                color: #fff;
+                text-shadow:
+                    -1px -1px 0 rgb(0 0 0 / 0.7),
+                     1px -1px 0 rgb(0 0 0 / 0.7),
+                    -1px  1px 0 rgb(0 0 0 / 0.7),
+                     1px  1px 0 rgb(0 0 0 / 0.7);
                 background: var(--unset);
+                opacity: 0;
+                pointer-events: none;
             }
-            .legend-swatch {
-                width: 16px;
-                height: 16px;
-                border-radius: 3px;
-                display: inline-block;
-                margin-right: 6px;
-                vertical-align: middle;
+            #grid-table.show-results .vote-swatch {
+                opacity: 0;
+                pointer-events: none;
+            }
+            #grid-table.show-results .result-swatch {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .tab-btn {
+                font-size: 1.125rem;
+                font-weight: 700;
+                color: var(--text-muted);
+                padding-bottom: 4px;
+                border-bottom: 2px solid transparent;
+                cursor: pointer;
+                transition: color 200ms ease, border-color 200ms ease;
+            }
+            .tab-btn:hover {
+                color: var(--text);
+            }
+            .tab-btn.active {
+                color: var(--text);
+                border-bottom-color: var(--highlight);
+            }
+            .colorbar-wrap {
+                position: absolute;
+                left: 100%;
+                margin-left: 14px;
+                /* top/height are set from JS to match the actual rendered data-row
+                   bounding box exactly, rather than assuming fixed row/gap sizes. */
+            }
+            .colorbar-track {
+                position: relative;
+                width: 10px;
+                height: 100%;
+            }
+            .colorbar-gradient {
+                width: 100%;
+                height: 100%;
+                border-radius: 9999px;
+                background: linear-gradient(to bottom, var(--highly), var(--possibly), var(--not-relevant));
+            }
+            .colorbar-tick {
+                position: absolute;
+                left: 100%;
+                margin-left: 10px;
+                transform: translateY(-50%);
+                font-size: 0.7rem;
+                color: var(--text-muted);
+                white-space: nowrap;
             }
         </style>
     </head>
@@ -82,65 +173,95 @@
             <h1 class="text-3xl md:text-4xl text-neutral-200 tracking-tight">
                 Galaxy Clusters &amp; Current/Future Facilities<span style="color: var(--highlight)">.</span>
             </h1>
-            <p class="mt-4 max-w-2xl text-sm font-light text-neutral-300">
-                For each science case, rate how relevant you think each facility will be. Tap a cell to cycle through
-                <span style="color: var(--not-relevant)">not relevant</span>,
-                <span style="color: var(--possibly)">possibly interesting</span>, and
-                <span style="color: var(--highly)">highly relevant</span> — tap again to clear it.
-                You don't need to rate every cell. The results grid below updates live as votes come in.
+            <p class="mt-4 text-sm font-light text-neutral-300">
+                For each science case, rate how relevant you think each facility will be. Every cell starts at
+                <span style="color: var(--not-relevant); font-weight: 600;">not relevant</span> — tap a cell to cycle through
+                <span style="color: var(--possibly); font-weight: 600;">possibly interesting</span> and
+                <span style="color: var(--highly); font-weight: 600;">highly relevant</span>. Save your vote to see the community
+                results, or switch over early with the tab below. You can come back and update your vote anytime —
+                just change any cells on the "Your vote" tab and save again.
             </p>
 
             <div id="status-banner" class="hidden mt-4 text-xs text-neutral-500 border border-neutral-700 rounded px-3 py-2"></div>
 
             <section class="mt-10">
-                <h2 class="text-lg text-neutral-200">Your vote</h2>
-                <p class="mt-1 text-xs text-neutral-500">Stored locally to this browser — come back anytime to update it.</p>
-                <div class="mt-4 overflow-x-auto">
-                    <table class="grid-table" id="vote-table"></table>
+                <div class="flex justify-center gap-8">
+                    <button id="tab-vote" class="tab-btn">Your vote</button>
+                    <button id="tab-results" class="tab-btn">Community results</button>
                 </div>
-                <div class="mt-6 flex items-center gap-4">
-                    <button id="submit-btn" class="px-4 py-2 text-xs font-mono border border-neutral-600 rounded text-neutral-200 hover:border-[var(--highlight)] hover:text-[var(--highlight)] transition-colors duration-200">
+
+                <div class="mt-8 overflow-x-auto flex justify-center">
+                    <div class="relative">
+                        <div class="row-labels" id="row-labels"></div>
+                        <table class="grid-table" id="grid-table"></table>
+                        <div class="colorbar-wrap" aria-hidden="true">
+                            <div class="colorbar-track">
+                                <div class="colorbar-gradient"></div>
+                                <span class="colorbar-tick" style="top: 0%;">highly relevant</span>
+                                <span class="colorbar-tick" style="top: 50%;">possibly interesting</span>
+                                <span class="colorbar-tick" style="top: 100%;">not relevant</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="vote-extra" class="mt-10 min-h-10 flex items-center justify-center gap-4">
+                    <button id="submit-btn" class="px-4 py-2 text-xs border border-neutral-600 rounded text-neutral-200 hover:border-[var(--highlight)] hover:text-[var(--highlight)] transition-colors duration-200">
                         Save my votes
                     </button>
                     <span id="submit-status" class="text-xs text-neutral-500"></span>
                 </div>
+
+                <div id="results-extra" class="mt-10 min-h-10 flex items-center justify-center" style="display: none;">
+                    <p id="results-summary" class="text-xs text-neutral-500 text-center"></p>
+                </div>
             </section>
 
-            <section class="mt-16">
-                <h2 class="text-lg text-neutral-200">Community results</h2>
-                <p id="results-summary" class="mt-1 text-xs text-neutral-500">Loading responses&hellip;</p>
-                <div class="mt-4 overflow-x-auto">
-                    <table class="grid-table" id="results-table"></table>
-                </div>
-                <div class="mt-4 text-xs text-neutral-500">
-                    <span class="legend-swatch" style="background: var(--not-relevant)"></span>not relevant
-                    <span class="legend-swatch ml-4" style="background: var(--possibly)"></span>possibly interesting
-                    <span class="legend-swatch ml-4" style="background: var(--highly)"></span>highly relevant
-                    <span class="legend-swatch ml-4" style="background: var(--unset)"></span>no votes yet
-                </div>
+            <section class="mt-20 max-w-xl mx-auto text-center">
+                <h2 class="text-2xl text-neutral-200" style="font-weight: bold;">Suggest a facility</h2>
+                <form id="suggest-form" class="mt-6 flex flex-col items-center gap-3">
+                    <input
+                        id="suggest-name"
+                        type="text"
+                        maxlength="60"
+                        placeholder="Facility name (e.g. LISA)"
+                        class="w-full bg-transparent border border-neutral-700 rounded px-3 py-2 text-sm text-center text-neutral-200 placeholder-neutral-600 focus:outline-none focus:border-[var(--highlight)]"
+                    />
+                    <div class="flex items-center gap-4">
+                        <button
+                            type="submit"
+                            id="suggest-btn"
+                            class="px-4 py-2 text-xs border border-neutral-600 rounded text-neutral-200 hover:border-[var(--highlight)] hover:text-[var(--highlight)] transition-colors duration-200"
+                        >
+                            Submit suggestion
+                        </button>
+                        <span id="suggest-status" class="text-xs text-neutral-500"></span>
+                    </div>
+                </form>
+                <ul id="suggest-list" class="mt-6 space-y-2 text-sm text-neutral-300"></ul>
             </section>
         </main>
 
         <script type="module">
             import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
             import {
-                getFirestore, doc, getDoc, setDoc, collection, onSnapshot, serverTimestamp,
+                getFirestore, doc, getDoc, setDoc, collection, addDoc, query, orderBy, limit,
+                onSnapshot, serverTimestamp,
             } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
-            // Fill these in from Firebase console > Project settings > General > Your apps > SDK setup and configuration.
             const firebaseConfig = {
-                apiKey: "REPLACE_ME",
-                authDomain: "REPLACE_ME.firebaseapp.com",
-                projectId: "REPLACE_ME",
-                storageBucket: "REPLACE_ME.appspot.com",
-                messagingSenderId: "REPLACE_ME",
-                appId: "REPLACE_ME",
+                apiKey: "AIzaSyA2UBLQxsJJNcf-RF3hcAkTfQNEaf5mQ-c",
+                authDomain: "cluster-facilities-survey.firebaseapp.com",
+                projectId: "cluster-facilities-survey",
+                storageBucket: "cluster-facilities-survey.firebasestorage.app",
+                messagingSenderId: "979145016593",
+                appId: "1:979145016593:web:9e1af34a922df58741b8b0",
             };
 
             const rows = [
-                { id: "cosmology", label: "Cosmology of\nthe Dark\nUniverse" },
-                { id: "thermal", label: "Physics of\nThermal ICM" },
-                { id: "nonthermal", label: "Physics of\nnon-Thermal\nICM" },
+                { id: "cosmology", label: "Cosmology of the\nDark Universe" },
+                { id: "thermal", label: "Physics of the\nThermal ICM" },
+                { id: "nonthermal", label: "Physics of the\nnon-Thermal ICM" },
                 { id: "galpop", label: "Galaxy\nPopulation" },
                 { id: "protoclusters", label: "Proto-clusters" },
             ];
@@ -154,11 +275,13 @@
                 { id: "newathena", label: "New\nAthena" },
                 { id: "axis", label: "AXIS\n(Lynx-like)" },
                 { id: "wst", label: "WST" },
-                { id: "atlast", label: "AtLAST\n(SO)" },
+                { id: "alma2040", label: "ALMA2040" },
+                { id: "atlast", label: "AtLAST" },
+                { id: "so_spt3g", label: "SO/\nSPT-3G" },
                 { id: "sims", label: "Sims" },
             ];
 
-            const STATES = [null, 0, 1, 2];
+            const STATES = [0, 1, 2];
             const STATE_COLOR = { 0: "var(--not-relevant)", 1: "var(--possibly)", 2: "var(--highly)" };
             const STATE_LABEL = { 0: "not relevant", 1: "possibly interesting", 2: "highly relevant" };
 
@@ -166,11 +289,8 @@
                 return `${rowId}__${colId}`;
             }
 
-            function buildHeader(table, firstCellText) {
+            function buildHeader(table) {
                 const thead = document.createElement("tr");
-                const corner = document.createElement("th");
-                corner.textContent = firstCellText || "";
-                thead.appendChild(corner);
                 for (const col of cols) {
                     const th = document.createElement("th");
                     th.className = "cell-label";
@@ -180,92 +300,90 @@
                 table.appendChild(thead);
             }
 
-            // ---------- vote grid ----------
+            function renderRowLabels(containerId) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = "";
+                const headerSlot = document.createElement("div");
+                headerSlot.className = "label-slot";
+                container.appendChild(headerSlot);
+                for (const row of rows) {
+                    const slot = document.createElement("div");
+                    slot.className = "label-slot";
+                    slot.textContent = row.label;
+                    container.appendChild(slot);
+                }
+            }
+
+            // ---------- grid ----------
             const myVotes = {};
             const swatchEls = {};
+            const resultEls = {};
 
-            function renderVoteTable() {
-                const table = document.getElementById("vote-table");
+            function renderGrid() {
+                const table = document.getElementById("grid-table");
                 table.innerHTML = "";
                 buildHeader(table);
                 for (const row of rows) {
                     const tr = document.createElement("tr");
-                    const th = document.createElement("th");
-                    th.className = "row-label";
-                    th.textContent = row.label.replace(/\n/g, " ");
-                    tr.appendChild(th);
                     for (const col of cols) {
                         const td = document.createElement("td");
                         const key = cellKey(row.id, col.id);
+                        myVotes[key] = 0;
+
+                        const stack = document.createElement("div");
+                        stack.className = "cell-stack";
+
                         const btn = document.createElement("button");
                         btn.type = "button";
                         btn.className = "vote-swatch";
-                        btn.title = "Click to rate";
                         btn.addEventListener("click", () => cycleVote(key, btn));
                         swatchEls[key] = btn;
-                        td.appendChild(btn);
+                        paintSwatch(btn, 0);
+
+                        const resultDiv = document.createElement("div");
+                        resultDiv.className = "result-swatch";
+                        resultEls[key] = resultDiv;
+
+                        stack.appendChild(btn);
+                        stack.appendChild(resultDiv);
+                        td.appendChild(stack);
                         tr.appendChild(td);
                     }
                     table.appendChild(tr);
                 }
+                renderRowLabels("row-labels");
+            }
+
+            function positionColorbar() {
+                const table = document.getElementById("grid-table");
+                const bar = document.querySelector(".colorbar-wrap");
+                const wrapper = table.closest(".relative");
+                const dataRows = Array.from(table.rows).slice(1);
+                if (!dataRows.length) return;
+                // Align to the actual swatch elements (68px), not the padded row box
+                // (80px) — the row's own vertical centering otherwise makes the bar
+                // overshoot the visible grid by the centering padding at each end.
+                const firstStack = dataRows[0].querySelector(".cell-stack");
+                const lastStack = dataRows[dataRows.length - 1].querySelector(".cell-stack");
+                const wrapperRect = wrapper.getBoundingClientRect();
+                const firstRect = firstStack.getBoundingClientRect();
+                const lastRect = lastStack.getBoundingClientRect();
+                bar.style.top = `${firstRect.top - wrapperRect.top}px`;
+                bar.style.height = `${lastRect.bottom - firstRect.top}px`;
             }
 
             function paintSwatch(btn, value) {
-                if (value === null || value === undefined) {
-                    btn.style.background = "transparent";
-                    btn.style.borderStyle = "dashed";
-                    btn.title = "Click to rate";
-                } else {
-                    btn.style.background = STATE_COLOR[value];
-                    btn.style.borderStyle = "solid";
-                    btn.title = STATE_LABEL[value];
-                }
+                btn.style.background = STATE_COLOR[value];
+                btn.style.borderStyle = "solid";
+                btn.title = STATE_LABEL[value];
             }
 
             function cycleVote(key, btn) {
-                const current = key in myVotes ? myVotes[key] : null;
-                const idx = STATES.indexOf(current);
+                const idx = STATES.indexOf(myVotes[key]);
                 const next = STATES[(idx + 1) % STATES.length];
-                if (next === null) {
-                    delete myVotes[key];
-                } else {
-                    myVotes[key] = next;
-                }
+                myVotes[key] = next;
                 paintSwatch(btn, next);
-                updateSubmitStatus();
-            }
-
-            function updateSubmitStatus() {
-                const n = Object.keys(myVotes).length;
-                const total = rows.length * cols.length;
-                document.getElementById("submit-status").textContent =
-                    n === 0 ? "No cells rated yet" : `${n}/${total} cells rated`;
-            }
-
-            // ---------- results grid ----------
-            const resultEls = {};
-
-            function renderResultsTable() {
-                const table = document.getElementById("results-table");
-                table.innerHTML = "";
-                buildHeader(table);
-                for (const row of rows) {
-                    const tr = document.createElement("tr");
-                    const th = document.createElement("th");
-                    th.className = "row-label";
-                    th.textContent = row.label.replace(/\n/g, " ");
-                    tr.appendChild(th);
-                    for (const col of cols) {
-                        const td = document.createElement("td");
-                        const key = cellKey(row.id, col.id);
-                        const div = document.createElement("div");
-                        div.className = "result-swatch";
-                        resultEls[key] = div;
-                        td.appendChild(div);
-                        tr.appendChild(td);
-                    }
-                    table.appendChild(tr);
-                }
+                document.getElementById("submit-status").textContent = "Unsaved changes";
             }
 
             function lerpColor(a, b, t) {
@@ -319,15 +437,33 @@
             }
 
             // ---------- firebase wiring ----------
-            renderVoteTable();
-            renderResultsTable();
-            updateSubmitStatus();
+            renderGrid();
+            positionColorbar();
 
             const banner = document.getElementById("status-banner");
             function showBanner(msg) {
                 banner.textContent = msg;
                 banner.classList.remove("hidden");
             }
+
+            const tabVoteBtn = document.getElementById("tab-vote");
+            const tabResultsBtn = document.getElementById("tab-results");
+            const gridTable = document.getElementById("grid-table");
+            const voteExtra = document.getElementById("vote-extra");
+            const resultsExtra = document.getElementById("results-extra");
+
+            function selectTab(tab) {
+                const showResults = tab === "results";
+                gridTable.classList.toggle("show-results", showResults);
+                voteExtra.style.display = showResults ? "none" : "flex";
+                resultsExtra.style.display = showResults ? "flex" : "none";
+                tabResultsBtn.classList.toggle("active", showResults);
+                tabVoteBtn.classList.toggle("active", !showResults);
+            }
+
+            tabVoteBtn.addEventListener("click", () => selectTab("vote"));
+            tabResultsBtn.addEventListener("click", () => selectTab("results"));
+            selectTab("vote");
 
             if (firebaseConfig.apiKey === "REPLACE_ME") {
                 showBanner(
@@ -354,7 +490,7 @@
                                 myVotes[key] = value;
                                 if (swatchEls[key]) paintSwatch(swatchEls[key], value);
                             }
-                            updateSubmitStatus();
+                            selectTab("results");
                         }
                     })
                     .catch((err) => {
@@ -379,10 +515,68 @@
                     submitStatus.textContent = "Saving…";
                     try {
                         await setDoc(voteDocRef, { cells: myVotes, updatedAt: serverTimestamp() });
-                        submitStatus.textContent = `Saved ✓ (${Object.keys(myVotes).length}/${rows.length * cols.length} cells rated)`;
+                        submitStatus.textContent = "Saved ✓";
+                        selectTab("results");
                     } catch (err) {
                         console.error(err);
                         submitStatus.textContent = "Failed to save: " + err.message;
+                    }
+                });
+
+                // ---------- suggestions ----------
+                const suggestList = document.getElementById("suggest-list");
+
+                onSnapshot(
+                    query(collection(db, "suggestions"), orderBy("createdAt", "desc"), limit(50)),
+                    (snapshot) => {
+                        suggestList.innerHTML = "";
+                        if (snapshot.empty) {
+                            const li = document.createElement("li");
+                            li.className = "text-neutral-600";
+                            li.textContent = "No suggestions yet.";
+                            suggestList.appendChild(li);
+                            return;
+                        }
+                        for (const docSnap of snapshot.docs) {
+                            const { name, note } = docSnap.data();
+                            const li = document.createElement("li");
+                            li.className = "border-l-2 border-neutral-700 pl-3";
+                            const nameEl = document.createElement("span");
+                            nameEl.className = "text-neutral-200";
+                            nameEl.textContent = name;
+                            li.appendChild(nameEl);
+                            if (note) {
+                                const noteEl = document.createElement("span");
+                                noteEl.className = "text-neutral-500";
+                                noteEl.textContent = " — " + note;
+                                li.appendChild(noteEl);
+                            }
+                            suggestList.appendChild(li);
+                        }
+                    },
+                    (err) => {
+                        console.error(err);
+                        showBanner("Couldn't load suggestions: " + err.message);
+                    }
+                );
+
+                document.getElementById("suggest-form").addEventListener("submit", async (event) => {
+                    event.preventDefault();
+                    const suggestStatus = document.getElementById("suggest-status");
+                    const nameInput = document.getElementById("suggest-name");
+                    const name = nameInput.value.trim();
+                    if (!name) {
+                        suggestStatus.textContent = "Give it a name first.";
+                        return;
+                    }
+                    suggestStatus.textContent = "Submitting…";
+                    try {
+                        await addDoc(collection(db, "suggestions"), { name, createdAt: serverTimestamp() });
+                        nameInput.value = "";
+                        suggestStatus.textContent = "Thanks — suggestion submitted ✓";
+                    } catch (err) {
+                        console.error(err);
+                        suggestStatus.textContent = "Failed to submit: " + err.message;
                     }
                 });
             }
