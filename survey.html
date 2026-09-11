@@ -50,13 +50,15 @@
                 padding-bottom: 4px;
             }
             .row-labels {
-                /* Mobile-first: normal flow, not absolutely positioned, so it stays
-                   reachable by horizontal scrolling on narrow viewports — content
-                   hanging off the left edge via absolute positioning falls outside
-                   the scrollable area on most mobile browsers and becomes
-                   unreachable. The table's border-spacing (6px) inserts a gap above
-                   the first row too, so the label column needs the same offset and
-                   inter-row gap to line up. */
+                /* Always normal flow, never absolutely positioned off the left edge.
+                   Content hanging outside a scrollable container's flow via negative
+                   offset is unreachable by scrolling on most browsers — desktop
+                   included, not just mobile — whenever the container is narrower
+                   than the content (a smaller window, browser zoom, etc.). Centering
+                   labels+grid together is a fair trade for always being scrollable.
+                   The table's border-spacing (6px) inserts a gap above the first row
+                   too, so the label column needs the same offset and inter-row gap
+                   to line up. */
                 flex-shrink: 0;
                 margin-top: 6px;
                 width: 190px;
@@ -64,17 +66,6 @@
                 display: flex;
                 flex-direction: column;
                 gap: 6px;
-            }
-            @media (min-width: 768px) {
-                .row-labels {
-                    /* Wide enough that the grid won't need horizontal scrolling —
-                       switch back to hanging the labels off the left edge so the
-                       swatch grid itself is what's centered, not labels+grid. */
-                    position: absolute;
-                    right: 100%;
-                    margin-top: 0;
-                    top: 6px;
-                }
             }
             .row-labels .label-slot {
                 height: 80px;
