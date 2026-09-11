@@ -50,16 +50,31 @@
                 padding-bottom: 4px;
             }
             .row-labels {
-                position: absolute;
-                right: 100%;
-                /* The table's border-spacing (6px) inserts a gap above the first row too,
-                   so the label column needs the same offset and inter-row gap to line up. */
-                top: 6px;
+                /* Mobile-first: normal flow, not absolutely positioned, so it stays
+                   reachable by horizontal scrolling on narrow viewports — content
+                   hanging off the left edge via absolute positioning falls outside
+                   the scrollable area on most mobile browsers and becomes
+                   unreachable. The table's border-spacing (6px) inserts a gap above
+                   the first row too, so the label column needs the same offset and
+                   inter-row gap to line up. */
+                flex-shrink: 0;
+                margin-top: 6px;
                 width: 190px;
                 padding-right: 12px;
                 display: flex;
                 flex-direction: column;
                 gap: 6px;
+            }
+            @media (min-width: 768px) {
+                .row-labels {
+                    /* Wide enough that the grid won't need horizontal scrolling —
+                       switch back to hanging the labels off the left edge so the
+                       swatch grid itself is what's centered, not labels+grid. */
+                    position: absolute;
+                    right: 100%;
+                    margin-top: 0;
+                    top: 6px;
+                }
             }
             .row-labels .label-slot {
                 height: 80px;
@@ -249,7 +264,7 @@
                 </p>
 
                 <div class="mt-4 overflow-x-auto flex justify-center">
-                    <div class="relative">
+                    <div class="relative flex items-start">
                         <div class="row-labels" id="row-labels"></div>
                         <table class="grid-table" id="grid-table"></table>
                         <div class="colorbar-wrap" aria-hidden="true">
