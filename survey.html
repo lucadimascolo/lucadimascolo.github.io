@@ -72,55 +72,38 @@
                 white-space: pre-line;
                 text-align: right;
             }
-            .cell-stack {
-                position: relative;
+            .cell-swatch {
                 width: 68px;
                 height: 68px;
                 margin: 0 auto;
-            }
-            .cell-stack > * {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 68px;
-                height: 68px;
-                will-change: opacity;
-                transition: opacity 750ms cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .vote-swatch {
-                border-radius: 8px;
-                border: 2px solid transparent;
-                cursor: pointer;
-                opacity: 1;
-                pointer-events: auto;
-            }
-            .vote-swatch:active {
-                transform: scale(0.94);
-            }
-            .result-swatch {
-                border-radius: 8px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                border-radius: 8px;
+                border: 2px solid transparent;
+                cursor: pointer;
+                background-color: var(--unset);
+                will-change: background-color;
+                transition: background-color 750ms cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .cell-swatch:active {
+                transform: scale(0.94);
+            }
+            #grid-section.show-results .cell-swatch {
+                cursor: default;
+                pointer-events: none;
+            }
+            .pct-label {
                 font-size: 0.8rem;
-                font-weight: 600;
+                font-weight: 400;
                 color: #fff;
-                text-shadow:
-                    -1px -1px 0 rgb(0 0 0 / 0.7),
-                     1px -1px 0 rgb(0 0 0 / 0.7),
-                    -1px  1px 0 rgb(0 0 0 / 0.7),
-                     1px  1px 0 rgb(0 0 0 / 0.7);
-                background: var(--unset);
+                text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
                 opacity: 0;
-                pointer-events: none;
+                transition: opacity 750ms cubic-bezier(0.4, 0, 0.2, 1);
             }
-            #grid-table.show-results .vote-swatch {
+            .caption-fade {
                 opacity: 0;
-                pointer-events: none;
-            }
-            #grid-table.show-results .result-swatch {
-                opacity: 1;
-                pointer-events: auto;
+                transition: opacity 750ms cubic-bezier(0.4, 0, 0.2, 1);
             }
             .tab-btn {
                 font-size: 1.125rem;
@@ -137,6 +120,39 @@
             .tab-btn.active {
                 color: var(--text);
                 border-bottom-color: var(--highlight);
+            }
+            .toggle-track {
+                position: relative;
+                width: 34px;
+                height: 18px;
+                flex-shrink: 0;
+                border-radius: 9999px;
+                background: rgb(115 115 115 / 0.3);
+                transition: background 200ms ease;
+            }
+            .toggle-thumb {
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: var(--text-muted);
+                transition: transform 200ms ease, background 200ms ease;
+            }
+            .toggle-input:checked + .toggle-track {
+                background: var(--highlight);
+            }
+            .toggle-input:checked + .toggle-track .toggle-thumb {
+                transform: translateX(16px);
+                background: #fff;
+            }
+            .toggle-input:disabled ~ .toggle-track,
+            .toggle-input:disabled ~ .toggle-label-text {
+                opacity: 0.4;
+            }
+            .toggle-input:disabled ~ .toggle-track {
+                cursor: not-allowed;
             }
             .colorbar-wrap {
                 position: absolute;
@@ -165,6 +181,29 @@
                 color: var(--text-muted);
                 white-space: nowrap;
             }
+            .colorbar-tick-suffix {
+                opacity: 0;
+                transition: opacity 750ms cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .extra-fade {
+                position: absolute;
+                inset: 0;
+                opacity: 1;
+                pointer-events: auto;
+                transition: opacity 750ms cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            #grid-section.show-results #vote-extra {
+                opacity: 0;
+                pointer-events: none;
+            }
+            #results-extra {
+                opacity: 0;
+                pointer-events: none;
+            }
+            #grid-section.show-results #results-extra {
+                opacity: 1;
+                pointer-events: auto;
+            }
         </style>
     </head>
 
@@ -175,45 +214,64 @@
             </h1>
             <p class="mt-4 text-sm font-light text-neutral-300">
                 For each science case, rate how relevant you think each facility will be. Every cell starts at
-                <span style="color: var(--not-relevant); font-weight: 600;">not relevant</span> — tap a cell to cycle through
+                <span style="color: var(--not-relevant); font-weight: 600;">not relevant</span>, and you can tap a cell to cycle through
                 <span style="color: var(--possibly); font-weight: 600;">possibly interesting</span> and
                 <span style="color: var(--highly); font-weight: 600;">highly relevant</span>. Save your vote to see the community
-                results, or switch over early with the tab below. You can come back and update your vote anytime —
+                results, or switch over early with the tab below. You can come back and update your vote anytime:
                 just change any cells on the "Your vote" tab and save again.
             </p>
 
             <div id="status-banner" class="hidden mt-4 text-xs text-neutral-500 border border-neutral-700 rounded px-3 py-2"></div>
 
-            <section class="mt-10">
+            <section class="mt-10" id="grid-section">
                 <div class="flex justify-center gap-8">
                     <button id="tab-vote" class="tab-btn">Your vote</button>
                     <button id="tab-results" class="tab-btn">Community results</button>
                 </div>
 
-                <div class="mt-8 overflow-x-auto flex justify-center">
+                <div class="mt-4 flex items-center justify-center gap-6 text-xs text-neutral-500">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="show-pct-toggle" class="sr-only toggle-input" />
+                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                        Show values
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="show-winner-toggle" class="sr-only toggle-input" disabled />
+                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                        <span class="toggle-label-text">Show most-voted selection</span>
+                    </label>
+                </div>
+
+                <p id="values-caption" class="caption-fade mt-4 max-w-md mx-auto text-xs text-neutral-600 text-center">
+                    The percentage gives a quantitative answer to "how relevant is this facility?"
+                </p>
+
+                <div class="mt-4 overflow-x-auto flex justify-center">
                     <div class="relative">
                         <div class="row-labels" id="row-labels"></div>
                         <table class="grid-table" id="grid-table"></table>
                         <div class="colorbar-wrap" aria-hidden="true">
                             <div class="colorbar-track">
                                 <div class="colorbar-gradient"></div>
-                                <span class="colorbar-tick" style="top: 0%;">highly relevant</span>
-                                <span class="colorbar-tick" style="top: 50%;">possibly interesting</span>
-                                <span class="colorbar-tick" style="top: 100%;">not relevant</span>
+                                <span class="colorbar-tick" id="colorbar-tick-100" style="top: 0%;"></span>
+                                <span class="colorbar-tick" id="colorbar-tick-50" style="top: 50%;"></span>
+                                <span class="colorbar-tick" id="colorbar-tick-0" style="top: 100%;"></span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="vote-extra" class="mt-10 min-h-10 flex items-center justify-center gap-4">
-                    <button id="submit-btn" class="px-4 py-2 text-xs border border-neutral-600 rounded text-neutral-200 hover:border-[var(--highlight)] hover:text-[var(--highlight)] transition-colors duration-200">
-                        Save my votes
-                    </button>
-                    <span id="submit-status" class="text-xs text-neutral-500"></span>
-                </div>
+                <div class="relative mt-10 min-h-10">
+                    <div id="vote-extra" class="extra-fade flex items-center justify-center gap-4">
+                        <button id="submit-btn" class="px-4 py-2 text-xs border border-neutral-600 rounded text-neutral-200 hover:border-[var(--highlight)] hover:text-[var(--highlight)] transition-colors duration-200">
+                            Save my votes
+                        </button>
+                        <span id="submit-status" class="text-xs text-neutral-500"></span>
+                    </div>
 
-                <div id="results-extra" class="mt-10 min-h-10 flex items-center justify-center" style="display: none;">
-                    <p id="results-summary" class="text-xs text-neutral-500 text-center"></p>
+                    <div id="results-extra" class="extra-fade flex items-center justify-center">
+                        <p id="results-summary" class="text-xs text-neutral-500 text-center"></p>
+                    </div>
                 </div>
             </section>
 
@@ -316,8 +374,12 @@
 
             // ---------- grid ----------
             const myVotes = {};
-            const swatchEls = {};
-            const resultEls = {};
+            const cellEls = {};
+            const pctEls = {};
+            const aggregateCache = {};
+            let currentTab = "vote";
+            let showValues = false;
+            let showWinner = false;
 
             function renderGrid() {
                 const table = document.getElementById("grid-table");
@@ -330,23 +392,18 @@
                         const key = cellKey(row.id, col.id);
                         myVotes[key] = 0;
 
-                        const stack = document.createElement("div");
-                        stack.className = "cell-stack";
-
                         const btn = document.createElement("button");
                         btn.type = "button";
-                        btn.className = "vote-swatch";
-                        btn.addEventListener("click", () => cycleVote(key, btn));
-                        swatchEls[key] = btn;
-                        paintSwatch(btn, 0);
+                        btn.className = "cell-swatch";
+                        btn.addEventListener("click", () => cycleVote(key));
+                        cellEls[key] = btn;
 
-                        const resultDiv = document.createElement("div");
-                        resultDiv.className = "result-swatch";
-                        resultEls[key] = resultDiv;
+                        const pctLabel = document.createElement("span");
+                        pctLabel.className = "pct-label";
+                        pctEls[key] = pctLabel;
+                        btn.appendChild(pctLabel);
 
-                        stack.appendChild(btn);
-                        stack.appendChild(resultDiv);
-                        td.appendChild(stack);
+                        td.appendChild(btn);
                         tr.appendChild(td);
                     }
                     table.appendChild(tr);
@@ -363,26 +420,84 @@
                 // Align to the actual swatch elements (68px), not the padded row box
                 // (80px) — the row's own vertical centering otherwise makes the bar
                 // overshoot the visible grid by the centering padding at each end.
-                const firstStack = dataRows[0].querySelector(".cell-stack");
-                const lastStack = dataRows[dataRows.length - 1].querySelector(".cell-stack");
+                const firstSwatch = dataRows[0].querySelector(".cell-swatch");
+                const lastSwatch = dataRows[dataRows.length - 1].querySelector(".cell-swatch");
                 const wrapperRect = wrapper.getBoundingClientRect();
-                const firstRect = firstStack.getBoundingClientRect();
-                const lastRect = lastStack.getBoundingClientRect();
+                const firstRect = firstSwatch.getBoundingClientRect();
+                const lastRect = lastSwatch.getBoundingClientRect();
                 bar.style.top = `${firstRect.top - wrapperRect.top}px`;
                 bar.style.height = `${lastRect.bottom - firstRect.top}px`;
             }
 
-            function paintSwatch(btn, value) {
-                btn.style.background = STATE_COLOR[value];
-                btn.style.borderStyle = "solid";
-                btn.title = STATE_LABEL[value];
+            // Updates a percentage label's text+visibility smoothly. If it's already
+            // visible and the number itself is changing (e.g. new votes shifted the
+            // average, or the winner/percentage mode was flipped), dip to 0 opacity,
+            // swap the digits while invisible, then fade back in — otherwise the text
+            // would just snap to the new value with no transition at all.
+            const PCT_SWAP_MS = 250;
+            function updatePctLabel(pctEl, text, visible) {
+                const changingValue = pctEl.textContent !== text && text !== "";
+                const wasVisible = pctEl.dataset.visible === "1";
+                if (changingValue && wasVisible && visible) {
+                    pctEl.style.opacity = "0";
+                    setTimeout(() => {
+                        pctEl.textContent = text;
+                        pctEl.style.opacity = "1";
+                    }, PCT_SWAP_MS);
+                } else {
+                    pctEl.textContent = text;
+                    pctEl.style.opacity = visible ? "1" : "0";
+                }
+                pctEl.dataset.visible = visible ? "1" : "0";
             }
 
-            function cycleVote(key, btn) {
+            // Paints a single cell's actual background-color/title/percentage label
+            // from the current mode (vote vs. results) and cached data, so switching
+            // tabs animates the real background-color property on one element instead
+            // of cross-fading two differently-colored layers (which looks muddy/grey).
+            function applyCellDisplay(key) {
+                const el = cellEls[key];
+                const pctEl = pctEls[key];
+                if (currentTab === "results") {
+                    const agg = aggregateCache[key];
+                    if (agg) {
+                        if (showWinner) {
+                            el.style.backgroundColor = STATE_COLOR[agg.mode];
+                            const modePct = Math.round((agg.mode / 2) * 100);
+                            el.title = `${STATE_LABEL[agg.mode]} wins ${agg.winnerCount}/${agg.n} · avg ${agg.avg.toFixed(2)}`;
+                            updatePctLabel(pctEl, `${modePct}%`, showValues);
+                        } else {
+                            el.style.backgroundColor = scoreToColor(agg.avg);
+                            el.title = `${agg.pct}% relevant · avg ${agg.avg.toFixed(2)} · n=${agg.n}`;
+                            updatePctLabel(pctEl, `${agg.pct}%`, showValues);
+                        }
+                    } else {
+                        el.style.backgroundColor = "var(--unset)";
+                        el.title = "No votes yet";
+                        updatePctLabel(pctEl, "", false);
+                    }
+                } else {
+                    const value = myVotes[key];
+                    el.style.backgroundColor = STATE_COLOR[value];
+                    el.title = STATE_LABEL[value];
+                    const votePct = Math.round((value / 2) * 100);
+                    updatePctLabel(pctEl, `${votePct}%`, showValues);
+                }
+            }
+
+            function applyAllCellsDisplay() {
+                for (const row of rows) {
+                    for (const col of cols) {
+                        applyCellDisplay(cellKey(row.id, col.id));
+                    }
+                }
+            }
+
+            function cycleVote(key) {
                 const idx = STATES.indexOf(myVotes[key]);
                 const next = STATES[(idx + 1) % STATES.length];
                 myVotes[key] = next;
-                paintSwatch(btn, next);
+                applyCellDisplay(key);
                 document.getElementById("submit-status").textContent = "Unsaved changes";
             }
 
@@ -405,40 +520,82 @@
             function renderAggregate(allVotes) {
                 const sums = {};
                 const counts = {};
+                const stateCounts = {};
                 let totalResponses = 0;
                 for (const cells of allVotes) {
                     totalResponses += 1;
                     for (const [key, value] of Object.entries(cells || {})) {
                         sums[key] = (sums[key] || 0) + value;
                         counts[key] = (counts[key] || 0) + 1;
+                        if (!stateCounts[key]) stateCounts[key] = { 0: 0, 1: 0, 2: 0 };
+                        stateCounts[key][value] += 1;
                     }
                 }
                 for (const row of rows) {
                     for (const col of cols) {
                         const key = cellKey(row.id, col.id);
-                        const div = resultEls[key];
                         const n = counts[key] || 0;
                         if (n === 0) {
-                            div.style.background = "var(--unset)";
-                            div.textContent = "";
-                            div.title = "No votes yet";
+                            aggregateCache[key] = null;
                         } else {
                             const avg = sums[key] / n;
-                            div.style.background = scoreToColor(avg);
-                            div.textContent = n;
-                            div.title = `avg ${avg.toFixed(2)} · n=${n}`;
+                            const pct = Math.round((avg / 2) * 100);
+                            const sc = stateCounts[key];
+                            let mode = 0;
+                            for (const v of [0, 1, 2]) {
+                                if (sc[v] > sc[mode]) mode = v;
+                            }
+                            aggregateCache[key] = { avg, pct, n, mode, winnerCount: sc[mode] };
                         }
                     }
                 }
+                applyAllCellsDisplay();
                 document.getElementById("results-summary").textContent =
                     totalResponses === 0
                         ? "No responses yet — be the first to vote."
                         : `${totalResponses} response${totalResponses === 1 ? "" : "s"} so far.`;
             }
 
+            // ---------- percentage toggle ----------
+            const COLORBAR_TICKS = [
+                { id: "colorbar-tick-100", pct: 100, label: "highly relevant" },
+                { id: "colorbar-tick-50", pct: 50, label: "possibly interesting" },
+                { id: "colorbar-tick-0", pct: 0, label: "not relevant" },
+            ];
+
+            function renderColorbarTicks() {
+                for (const tick of COLORBAR_TICKS) {
+                    const el = document.getElementById(tick.id);
+                    let suffix = el.querySelector(".colorbar-tick-suffix");
+                    if (!suffix) {
+                        el.textContent = tick.label;
+                        suffix = document.createElement("span");
+                        suffix.className = "colorbar-tick-suffix";
+                        suffix.textContent = ` - ${tick.pct}%`;
+                        el.appendChild(suffix);
+                    }
+                    suffix.style.opacity = showValues ? "1" : "0";
+                }
+            }
+
+            const valuesCaption = document.getElementById("values-caption");
+
+            document.getElementById("show-pct-toggle").addEventListener("change", (event) => {
+                showValues = event.target.checked;
+                valuesCaption.style.opacity = showValues ? "1" : "0";
+                renderColorbarTicks();
+                applyAllCellsDisplay();
+            });
+
+            document.getElementById("show-winner-toggle").addEventListener("change", (event) => {
+                showWinner = event.target.checked;
+                applyAllCellsDisplay();
+            });
+
             // ---------- firebase wiring ----------
             renderGrid();
             positionColorbar();
+            renderColorbarTicks();
 
             const banner = document.getElementById("status-banner");
             function showBanner(msg) {
@@ -448,17 +605,18 @@
 
             const tabVoteBtn = document.getElementById("tab-vote");
             const tabResultsBtn = document.getElementById("tab-results");
-            const gridTable = document.getElementById("grid-table");
-            const voteExtra = document.getElementById("vote-extra");
-            const resultsExtra = document.getElementById("results-extra");
+            const gridSection = document.getElementById("grid-section");
+
+            const showWinnerToggle = document.getElementById("show-winner-toggle");
 
             function selectTab(tab) {
+                currentTab = tab;
                 const showResults = tab === "results";
-                gridTable.classList.toggle("show-results", showResults);
-                voteExtra.style.display = showResults ? "none" : "flex";
-                resultsExtra.style.display = showResults ? "flex" : "none";
+                gridSection.classList.toggle("show-results", showResults);
                 tabResultsBtn.classList.toggle("active", showResults);
                 tabVoteBtn.classList.toggle("active", !showResults);
+                showWinnerToggle.disabled = !showResults;
+                applyAllCellsDisplay();
             }
 
             tabVoteBtn.addEventListener("click", () => selectTab("vote"));
@@ -488,7 +646,6 @@
                             const cells = snap.data().cells || {};
                             for (const [key, value] of Object.entries(cells)) {
                                 myVotes[key] = value;
-                                if (swatchEls[key]) paintSwatch(swatchEls[key], value);
                             }
                             selectTab("results");
                         }
