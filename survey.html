@@ -213,12 +213,14 @@
                 Galaxy Clusters &amp; Current/Future Facilities<span style="color: var(--highlight)">.</span>
             </h1>
             <p class="mt-4 text-sm font-light text-neutral-300">
-                For each science case, rate how relevant you think each facility will be. Every cell starts at
-                <span style="color: var(--not-relevant); font-weight: 600;">not relevant</span>, and you can tap a cell to cycle through
-                <span style="color: var(--possibly); font-weight: 600;">possibly interesting</span> and
-                <span style="color: var(--highly); font-weight: 600;">highly relevant</span>. Save your vote to see the community
-                results, or switch over early with the tab below. You can come back and update your vote anytime:
-                just change any cells on the "Your vote" tab and save again.
+                For each science case, rate how relevant you think each facility will be. Every cell starts blank
+                (no opinion) — tap a cell to cycle through
+                <span style="color: var(--not-relevant); font-weight: 600;">not relevant</span>,
+                <span style="color: var(--possibly); font-weight: 600;">possibly interesting</span>, and
+                <span style="color: var(--highly); font-weight: 600;">highly relevant</span>; tap again to clear it.
+                You don't need an opinion on every cell. Save your vote to see the community results, or switch over
+                early with the tab below. You can come back and update your vote anytime: just change any cells on
+                the "Your vote" tab and save again.
             </p>
 
             <div id="status-banner" class="hidden mt-4 text-xs text-neutral-500 border border-neutral-700 rounded px-3 py-2"></div>
@@ -339,7 +341,7 @@
                 { id: "sims", label: "Sims" },
             ];
 
-            const STATES = [0, 1, 2];
+            const STATES = [null, 0, 1, 2];
             const STATE_COLOR = { 0: "var(--not-relevant)", 1: "var(--possibly)", 2: "var(--highly)" };
             const STATE_LABEL = { 0: "not relevant", 1: "possibly interesting", 2: "highly relevant" };
 
@@ -390,7 +392,7 @@
                     for (const col of cols) {
                         const td = document.createElement("td");
                         const key = cellKey(row.id, col.id);
-                        myVotes[key] = 0;
+                        myVotes[key] = null;
 
                         const btn = document.createElement("button");
                         btn.type = "button";
@@ -459,6 +461,8 @@
                 const el = cellEls[key];
                 const pctEl = pctEls[key];
                 if (currentTab === "results") {
+                    el.style.borderStyle = "solid";
+                    el.style.borderColor = "transparent";
                     const agg = aggregateCache[key];
                     if (agg) {
                         if (showWinner) {
@@ -478,10 +482,20 @@
                     }
                 } else {
                     const value = myVotes[key];
-                    el.style.backgroundColor = STATE_COLOR[value];
-                    el.title = STATE_LABEL[value];
-                    const votePct = Math.round((value / 2) * 100);
-                    updatePctLabel(pctEl, `${votePct}%`, showValues);
+                    if (value === null) {
+                        el.style.backgroundColor = "transparent";
+                        el.style.borderStyle = "dashed";
+                        el.style.borderColor = "rgb(229 229 229 / 0.4)";
+                        el.title = "No opinion — click to rate";
+                        updatePctLabel(pctEl, "", false);
+                    } else {
+                        el.style.backgroundColor = STATE_COLOR[value];
+                        el.style.borderStyle = "solid";
+                        el.style.borderColor = "transparent";
+                        el.title = STATE_LABEL[value];
+                        const votePct = Math.round((value / 2) * 100);
+                        updatePctLabel(pctEl, `${votePct}%`, showValues);
+                    }
                 }
             }
 
@@ -671,7 +685,11 @@
                     const submitStatus = document.getElementById("submit-status");
                     submitStatus.textContent = "Saving…";
                     try {
-                        await setDoc(voteDocRef, { cells: myVotes, updatedAt: serverTimestamp() });
+                        const cellsToSave = {};
+                        for (const [key, value] of Object.entries(myVotes)) {
+                            if (value !== null) cellsToSave[key] = value;
+                        }
+                        await setDoc(voteDocRef, { cells: cellsToSave, updatedAt: serverTimestamp() });
                         submitStatus.textContent = "Saved ✓";
                         selectTab("results");
                     } catch (err) {
