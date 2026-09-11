@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Facilities Survey</title>
+        <meta name="description" content="Community survey on the relevance of next-gen facilities to galaxy cluster science." />
+        <meta name="robots" content="noindex, nofollow" />
+
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+        <link rel="stylesheet" href="assets/css/custom.css" />
+
+        <style>
+            :root {
+                --not-relevant: #d9764a;
+                --possibly: #c9a24b;
+                --highly: #5a8f5a;
+                --unset: #3c3c44;
+            }
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: 'Courier New', monospace;
+            }
+            table.grid-table {
+                border-collapse: separate;
+                border-spacing: 6px;
+            }
+            .cell-label {
+                font-size: 0.8rem;
+                line-height: 1.05rem;
+                color: var(--text-muted);
+                white-space: pre-line;
+                text-align: center;
+                padding-bottom: 4px;
+            }
+            .row-label {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                text-align: right;
+                padding-right: 12px;
+                max-width: 190px;
+            }
+            .vote-swatch {
+                width: 68px;
+                height: 68px;
+                border-radius: 8px;
+                border: 2px dashed rgb(115 115 115 / 0.5);
+                background: transparent;
+                cursor: pointer;
+                transition: background-color 200ms ease, border-color 200ms ease, transform 100ms ease;
+            }
+            .vote-swatch:active {
+                transform: scale(0.94);
+            }
+            .result-swatch {
+                width: 68px;
+                height: 68px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: rgb(23 23 23 / 0.75);
+                background: var(--unset);
+            }
+            .legend-swatch {
+                width: 16px;
+                height: 16px;
+                border-radius: 3px;
+                display: inline-block;
+                margin-right: 6px;
+                vertical-align: middle;
+            }
+        </style>
+    </head>
+
+    <body class="min-h-screen">
+        <main class="max-w-7xl mx-auto px-4 py-16">
+            <h1 class="text-3xl md:text-4xl text-neutral-200 tracking-tight">
+                Galaxy Clusters &amp; Current/Future Facilities<span style="color: var(--highlight)">.</span>
+            </h1>
+            <p class="mt-4 max-w-2xl text-sm font-light text-neutral-300">
+                For each science case, rate how relevant you think each facility will be. Tap a cell to cycle through
+                <span style="color: var(--not-relevant)">not relevant</span>,
+                <span style="color: var(--possibly)">possibly interesting</span>, and
+                <span style="color: var(--highly)">highly relevant</span> — tap again to clear it.
+                You don't need to rate every cell. The results grid below updates live as votes come in.
+            </p>
+
+            <div id="status-banner" class="hidden mt-4 text-xs text-neutral-500 border border-neutral-700 rounded px-3 py-2"></div>
+
+            <section class="mt-10">
+                <h2 class="text-lg text-neutral-200">Your vote</h2>
+                <p class="mt-1 text-xs text-neutral-500">Stored locally to this browser — come back anytime to update it.</p>
+                <div class="mt-4 overflow-x-auto">
+                    <table class="grid-table" id="vote-table"></table>
+                </div>
+                <div class="mt-6 flex items-center gap-4">
+                    <button id="submit-btn" class="px-4 py-2 text-xs font-mono border border-neutral-600 rounded text-neutral-200 hover:border-[var(--highlight)] hover:text-[var(--highlight)] transition-colors duration-200">
+                        Save my votes
+                    </button>
+                    <span id="submit-status" class="text-xs text-neutral-500"></span>
+                </div>
+            </section>
+
+            <section class="mt-16">
+                <h2 class="text-lg text-neutral-200">Community results</h2>
+                <p id="results-summary" class="mt-1 text-xs text-neutral-500">Loading responses&hellip;</p>
+                <div class="mt-4 overflow-x-auto">
+                    <table class="grid-table" id="results-table"></table>
+                </div>
+                <div class="mt-4 text-xs text-neutral-500">
+                    <span class="legend-swatch" style="background: var(--not-relevant)"></span>not relevant
+                    <span class="legend-swatch ml-4" style="background: var(--possibly)"></span>possibly interesting
+                    <span class="legend-swatch ml-4" style="background: var(--highly)"></span>highly relevant
+                    <span class="legend-swatch ml-4" style="background: var(--unset)"></span>no votes yet
+                </div>
+            </section>
+        </main>
+
+        <script type="module">
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+            import {
+                getFirestore, doc, getDoc, setDoc, collection, onSnapshot, serverTimestamp,
+            } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+            // Fill these in from Firebase console > Project settings > General > Your apps > SDK setup and configuration.
+            const firebaseConfig = {
+                apiKey: "REPLACE_ME",
+                authDomain: "REPLACE_ME.firebaseapp.com",
+                projectId: "REPLACE_ME",
+                storageBucket: "REPLACE_ME.appspot.com",
+                messagingSenderId: "REPLACE_ME",
+                appId: "REPLACE_ME",
+            };
+
+            const rows = [
+                { id: "cosmology", label: "Cosmology of\nthe Dark\nUniverse" },
+                { id: "thermal", label: "Physics of\nThermal ICM" },
+                { id: "nonthermal", label: "Physics of\nnon-Thermal\nICM" },
+                { id: "galpop", label: "Galaxy\nPopulation" },
+                { id: "protoclusters", label: "Proto-clusters" },
+            ];
+
+            const cols = [
+                { id: "4most", label: "4MOST" },
+                { id: "euclid", label: "Euclid\n(LSST,\nRoman)" },
+                { id: "ska", label: "SKA\n(LOFAR2)" },
+                { id: "eelt", label: "E-ELT" },
+                { id: "cta", label: "CTA" },
+                { id: "newathena", label: "New\nAthena" },
+                { id: "axis", label: "AXIS\n(Lynx-like)" },
+                { id: "wst", label: "WST" },
+                { id: "atlast", label: "AtLAST\n(SO)" },
+                { id: "sims", label: "Sims" },
+            ];
+
+            const STATES = [null, 0, 1, 2];
+            const STATE_COLOR = { 0: "var(--not-relevant)", 1: "var(--possibly)", 2: "var(--highly)" };
+            const STATE_LABEL = { 0: "not relevant", 1: "possibly interesting", 2: "highly relevant" };
+
+            function cellKey(rowId, colId) {
+                return `${rowId}__${colId}`;
+            }
+
+            function buildHeader(table, firstCellText) {
+                const thead = document.createElement("tr");
+                const corner = document.createElement("th");
+                corner.textContent = firstCellText || "";
+                thead.appendChild(corner);
+                for (const col of cols) {
+                    const th = document.createElement("th");
+                    th.className = "cell-label";
+                    th.textContent = col.label;
+                    thead.appendChild(th);
+                }
+                table.appendChild(thead);
+            }
+
+            // ---------- vote grid ----------
+            const myVotes = {};
+            const swatchEls = {};
+
+            function renderVoteTable() {
+                const table = document.getElementById("vote-table");
+                table.innerHTML = "";
+                buildHeader(table);
+                for (const row of rows) {
+                    const tr = document.createElement("tr");
+                    const th = document.createElement("th");
+                    th.className = "row-label";
+                    th.textContent = row.label.replace(/\n/g, " ");
+                    tr.appendChild(th);
+                    for (const col of cols) {
+                        const td = document.createElement("td");
+                        const key = cellKey(row.id, col.id);
+                        const btn = document.createElement("button");
+                        btn.type = "button";
+                        btn.className = "vote-swatch";
+                        btn.title = "Click to rate";
+                        btn.addEventListener("click", () => cycleVote(key, btn));
+                        swatchEls[key] = btn;
+                        td.appendChild(btn);
+                        tr.appendChild(td);
+                    }
+                    table.appendChild(tr);
+                }
+            }
+
+            function paintSwatch(btn, value) {
+                if (value === null || value === undefined) {
+                    btn.style.background = "transparent";
+                    btn.style.borderStyle = "dashed";
+                    btn.title = "Click to rate";
+                } else {
+                    btn.style.background = STATE_COLOR[value];
+                    btn.style.borderStyle = "solid";
+                    btn.title = STATE_LABEL[value];
+                }
+            }
+
+            function cycleVote(key, btn) {
+                const current = key in myVotes ? myVotes[key] : null;
+                const idx = STATES.indexOf(current);
+                const next = STATES[(idx + 1) % STATES.length];
+                if (next === null) {
+                    delete myVotes[key];
+                } else {
+                    myVotes[key] = next;
+                }
+                paintSwatch(btn, next);
+                updateSubmitStatus();
+            }
+
+            function updateSubmitStatus() {
+                const n = Object.keys(myVotes).length;
+                const total = rows.length * cols.length;
+                document.getElementById("submit-status").textContent =
+                    n === 0 ? "No cells rated yet" : `${n}/${total} cells rated`;
+            }
+
+            // ---------- results grid ----------
+            const resultEls = {};
+
+            function renderResultsTable() {
+                const table = document.getElementById("results-table");
+                table.innerHTML = "";
+                buildHeader(table);
+                for (const row of rows) {
+                    const tr = document.createElement("tr");
+                    const th = document.createElement("th");
+                    th.className = "row-label";
+                    th.textContent = row.label.replace(/\n/g, " ");
+                    tr.appendChild(th);
+                    for (const col of cols) {
+                        const td = document.createElement("td");
+                        const key = cellKey(row.id, col.id);
+                        const div = document.createElement("div");
+                        div.className = "result-swatch";
+                        resultEls[key] = div;
+                        td.appendChild(div);
+                        tr.appendChild(td);
+                    }
+                    table.appendChild(tr);
+                }
+            }
+
+            function lerpColor(a, b, t) {
+                const pa = a.match(/\w\w/g).map((h) => parseInt(h, 16));
+                const pb = b.match(/\w\w/g).map((h) => parseInt(h, 16));
+                const p = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+                return `rgb(${p[0]}, ${p[1]}, ${p[2]})`;
+            }
+
+            const NOT_RELEVANT_HEX = "#d9764a";
+            const POSSIBLY_HEX = "#c9a24b";
+            const HIGHLY_HEX = "#5a8f5a";
+
+            function scoreToColor(avg) {
+                if (avg <= 1) return lerpColor(NOT_RELEVANT_HEX, POSSIBLY_HEX, avg);
+                return lerpColor(POSSIBLY_HEX, HIGHLY_HEX, avg - 1);
+            }
+
+            function renderAggregate(allVotes) {
+                const sums = {};
+                const counts = {};
+                let totalResponses = 0;
+                for (const cells of allVotes) {
+                    totalResponses += 1;
+                    for (const [key, value] of Object.entries(cells || {})) {
+                        sums[key] = (sums[key] || 0) + value;
+                        counts[key] = (counts[key] || 0) + 1;
+                    }
+                }
+                for (const row of rows) {
+                    for (const col of cols) {
+                        const key = cellKey(row.id, col.id);
+                        const div = resultEls[key];
+                        const n = counts[key] || 0;
+                        if (n === 0) {
+                            div.style.background = "var(--unset)";
+                            div.textContent = "";
+                            div.title = "No votes yet";
+                        } else {
+                            const avg = sums[key] / n;
+                            div.style.background = scoreToColor(avg);
+                            div.textContent = n;
+                            div.title = `avg ${avg.toFixed(2)} · n=${n}`;
+                        }
+                    }
+                }
+                document.getElementById("results-summary").textContent =
+                    totalResponses === 0
+                        ? "No responses yet — be the first to vote."
+                        : `${totalResponses} response${totalResponses === 1 ? "" : "s"} so far.`;
+            }
+
+            // ---------- firebase wiring ----------
+            renderVoteTable();
+            renderResultsTable();
+            updateSubmitStatus();
+
+            const banner = document.getElementById("status-banner");
+            function showBanner(msg) {
+                banner.textContent = msg;
+                banner.classList.remove("hidden");
+            }
+
+            if (firebaseConfig.apiKey === "REPLACE_ME") {
+                showBanner(
+                    "Firebase isn't configured yet — votes won't be saved or synced until firebaseConfig is filled in."
+                );
+            } else {
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+
+                const VOTE_ID_KEY = "facilitySurveyVoteId";
+                let voteId = localStorage.getItem(VOTE_ID_KEY);
+                if (!voteId) {
+                    voteId = crypto.randomUUID();
+                    localStorage.setItem(VOTE_ID_KEY, voteId);
+                }
+
+                const voteDocRef = doc(db, "votes", voteId);
+
+                getDoc(voteDocRef)
+                    .then((snap) => {
+                        if (snap.exists()) {
+                            const cells = snap.data().cells || {};
+                            for (const [key, value] of Object.entries(cells)) {
+                                myVotes[key] = value;
+                                if (swatchEls[key]) paintSwatch(swatchEls[key], value);
+                            }
+                            updateSubmitStatus();
+                        }
+                    })
+                    .catch((err) => {
+                        console.error(err);
+                        showBanner("Couldn't load your previous vote: " + err.message);
+                    });
+
+                onSnapshot(
+                    collection(db, "votes"),
+                    (snapshot) => {
+                        const allVotes = snapshot.docs.map((d) => d.data().cells);
+                        renderAggregate(allVotes);
+                    },
+                    (err) => {
+                        console.error(err);
+                        showBanner("Couldn't load community results: " + err.message);
+                    }
+                );
+
+                document.getElementById("submit-btn").addEventListener("click", async () => {
+                    const submitStatus = document.getElementById("submit-status");
+                    submitStatus.textContent = "Saving…";
+                    try {
+                        await setDoc(voteDocRef, { cells: myVotes, updatedAt: serverTimestamp() });
+                        submitStatus.textContent = `Saved ✓ (${Object.keys(myVotes).length}/${rows.length * cols.length} cells rated)`;
+                    } catch (err) {
+                        console.error(err);
+                        submitStatus.textContent = "Failed to save: " + err.message;
+                    }
+                });
+            }
+        </script>
+    </body>
+</html>
