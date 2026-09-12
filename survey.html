@@ -25,11 +25,11 @@
             }
             table.grid-table {
                 border-collapse: separate;
-                border-spacing: 6px;
+                border-spacing: 4px;
                 table-layout: fixed;
             }
             .grid-table tr {
-                height: 80px;
+                height: 68px;
             }
             .grid-table td {
                 text-align: center;
@@ -37,7 +37,7 @@
             }
             .grid-table th,
             .grid-table td {
-                width: 68px;
+                width: 56px;
             }
             .cell-label {
                 font-size: 0.8rem;
@@ -54,21 +54,27 @@
                    Content hanging outside a scrollable container's flow via negative
                    offset is unreachable by scrolling on most browsers — desktop
                    included, not just mobile — whenever the container is narrower
-                   than the content (a smaller window, browser zoom, etc.). Centering
-                   labels+grid together is a fair trade for always being scrollable.
-                   The table's border-spacing (6px) inserts a gap above the first row
+                   than the content (a smaller window, browser zoom, etc.). A matching
+                   .row-labels-spacer on the far right keeps the row symmetric so the
+                   table itself stays centered without needing any of that.
+                   The table's border-spacing (4px) inserts a gap above the first row
                    too, so the label column needs the same offset and inter-row gap
                    to line up. */
                 flex-shrink: 0;
-                margin-top: 6px;
-                width: 190px;
+                margin-top: 4px;
+                width: 160px;
                 padding-right: 12px;
                 display: flex;
                 flex-direction: column;
-                gap: 6px;
+                gap: 4px;
+            }
+            .row-labels-spacer {
+                /* Must match .row-labels' total rendered width (160px + 12px padding). */
+                flex-shrink: 0;
+                width: 172px;
             }
             .row-labels .label-slot {
-                height: 80px;
+                height: 68px;
                 display: flex;
                 align-items: center;
                 justify-content: flex-end;
@@ -79,8 +85,8 @@
                 text-align: right;
             }
             .cell-swatch {
-                width: 68px;
-                height: 68px;
+                width: 56px;
+                height: 56px;
                 margin: 0 auto;
                 display: flex;
                 align-items: center;
@@ -163,7 +169,7 @@
             .colorbar-wrap {
                 position: absolute;
                 left: 100%;
-                margin-left: 14px;
+                margin-left: 10px;
                 /* top/height are set from JS to match the actual rendered data-row
                    bounding box exactly, rather than assuming fixed row/gap sizes. */
             }
@@ -181,9 +187,9 @@
             .colorbar-tick {
                 position: absolute;
                 left: 100%;
-                margin-left: 10px;
+                margin-left: 8px;
                 transform: translateY(-50%);
-                font-size: 0.7rem;
+                font-size: 0.65rem;
                 color: var(--text-muted);
                 white-space: nowrap;
             }
@@ -255,17 +261,24 @@
                 </p>
 
                 <div class="mt-4 overflow-x-auto flex justify-center">
-                    <div class="relative flex items-start">
+                    <div class="flex items-start">
                         <div class="row-labels" id="row-labels"></div>
-                        <table class="grid-table" id="grid-table"></table>
-                        <div class="colorbar-wrap" aria-hidden="true">
-                            <div class="colorbar-track">
-                                <div class="colorbar-gradient"></div>
-                                <span class="colorbar-tick" id="colorbar-tick-100" style="top: 0%;"></span>
-                                <span class="colorbar-tick" id="colorbar-tick-50" style="top: 50%;"></span>
-                                <span class="colorbar-tick" id="colorbar-tick-0" style="top: 100%;"></span>
+                        <div class="relative">
+                            <table class="grid-table" id="grid-table"></table>
+                            <div class="colorbar-wrap" aria-hidden="true">
+                                <div class="colorbar-track">
+                                    <div class="colorbar-gradient"></div>
+                                    <span class="colorbar-tick" id="colorbar-tick-100" style="top: 0%;"></span>
+                                    <span class="colorbar-tick" id="colorbar-tick-50" style="top: 50%;"></span>
+                                    <span class="colorbar-tick" id="colorbar-tick-0" style="top: 100%;"></span>
+                                </div>
                             </div>
                         </div>
+                        <!-- Invisible, same width as .row-labels, so this row is symmetric and
+                             the table (not labels+table) ends up centered — without resorting
+                             to absolute/transform positioning for the labels, which is what
+                             made them unreachable by scrolling on some desktop browsers. -->
+                        <div class="row-labels-spacer" aria-hidden="true"></div>
                     </div>
                 </div>
 
@@ -425,8 +438,8 @@
                 const wrapper = table.closest(".relative");
                 const dataRows = Array.from(table.rows).slice(1);
                 if (!dataRows.length) return;
-                // Align to the actual swatch elements (68px), not the padded row box
-                // (80px) — the row's own vertical centering otherwise makes the bar
+                // Align to the actual swatch elements (56px), not the padded row box
+                // (68px) — the row's own vertical centering otherwise makes the bar
                 // overshoot the visible grid by the centering padding at each end.
                 const firstSwatch = dataRows[0].querySelector(".cell-swatch");
                 const lastSwatch = dataRows[dataRows.length - 1].querySelector(".cell-swatch");
