@@ -39,15 +39,36 @@
             .grid-table td {
                 width: 56px;
             }
+            .grid-table tr.header-row {
+                height: 130px;
+            }
+            .row-divider {
+                /* One continuous line spanning labels+grid, positioned from JS —
+                   per-cell border-top segments break at every border-spacing gap
+                   and look like dashes-within-dashes instead of one line. */
+                position: absolute;
+                height: 0;
+                border-top: 1px dashed rgb(229 229 229 / 0.35);
+                pointer-events: none;
+            }
             .cell-label {
-                font-size: 0.8rem;
-                line-height: 1.05rem;
+                position: relative;
+                vertical-align: bottom;
+            }
+            .cell-label-text {
+                /* Anchored so its rotation pivot sits on the column's horizontal
+                   center, close to the grid below — pivoting from the row's
+                   vertical mid-line instead left a large dead gap underneath the
+                   text before the grid started, since the text only ever sweeps
+                   upward from the pivot, never downward. */
+                position: absolute;
+                left: 50%;
+                bottom: 6px;
+                white-space: nowrap;
+                font-size: 0.7rem;
                 color: var(--text-muted);
-                white-space: pre-line;
-                overflow-wrap: break-word;
-                hyphens: auto;
-                text-align: center;
-                padding-bottom: 4px;
+                transform: rotate(-60deg);
+                transform-origin: bottom left;
             }
             .row-labels {
                 /* Always normal flow, never absolutely positioned off the left edge.
@@ -83,6 +104,11 @@
                 color: var(--text-muted);
                 white-space: pre-line;
                 text-align: right;
+            }
+            .row-labels .label-slot.label-slot-header {
+                /* Matches .grid-table tr.header-row's height so the first data-row
+                   label still lines up with the first actual data row below it. */
+                height: 130px;
             }
             .cell-swatch {
                 width: 56px;
@@ -225,8 +251,9 @@
                 Galaxy Clusters &amp; Current/Future Facilities<span style="color: var(--highlight)">.</span>
             </h1>
             <p class="mt-4 text-sm font-light text-neutral-300">
-                For each science case, rate how relevant you think each facility will be. Every cell starts blank
-                (no opinion) — tap a cell to cycle through
+                For each science case, rate whether the facility would actually be relevant to that science — not
+                whether it's your favorite telescope. Every cell starts blank (no opinion) — tap a cell to cycle
+                through
                 <span style="color: var(--not-relevant); font-weight: 600;">not relevant</span>,
                 <span style="color: var(--possibly); font-weight: 600;">possibly interesting</span>, and
                 <span style="color: var(--highly); font-weight: 600;">highly relevant</span>; tap again to clear it.
@@ -261,7 +288,7 @@
                 </p>
 
                 <div class="mt-4 overflow-x-auto flex justify-center">
-                    <div class="flex items-start">
+                    <div class="relative flex items-start">
                         <div class="row-labels" id="row-labels"></div>
                         <div class="relative">
                             <table class="grid-table" id="grid-table"></table>
@@ -279,6 +306,7 @@
                              to absolute/transform positioning for the labels, which is what
                              made them unreachable by scrolling on some desktop browsers. -->
                         <div class="row-labels-spacer" aria-hidden="true"></div>
+                        <div class="row-divider" id="row-divider" aria-hidden="true"></div>
                     </div>
                 </div>
 
@@ -317,7 +345,7 @@
                         <span id="suggest-status" class="text-xs text-neutral-500"></span>
                     </div>
                 </form>
-                <ul id="suggest-list" class="mt-6 space-y-2 text-sm text-neutral-300"></ul>
+                <ul id="suggest-list" class="mt-6 space-y-2 text-sm text-neutral-300 flex flex-col items-center"></ul>
             </section>
         </main>
 
@@ -343,20 +371,24 @@
                 { id: "nonthermal", label: "Physics of the\nnon-Thermal ICM" },
                 { id: "galpop", label: "Galaxy\nPopulation" },
                 { id: "protoclusters", label: "Proto-clusters" },
+                { id: "overall", label: "Overall relevance\nto your research", separator: true },
             ];
 
             const cols = [
                 { id: "4most", label: "4MOST" },
-                { id: "euclid", label: "Euclid\n(LSST,\nRoman)" },
-                { id: "ska", label: "SKA\n(LOFAR2)" },
+                { id: "moons", label: "MOONS" },
+                { id: "euclid", label: "Euclid (LSST, Roman)" },
+                { id: "ska", label: "SKA (LOFAR2)" },
+                { id: "srt", label: "SRT" },
                 { id: "eelt", label: "E-ELT" },
                 { id: "cta", label: "CTA" },
-                { id: "newathena", label: "New\nAthena" },
-                { id: "axis", label: "AXIS\n(Lynx-like)" },
+                { id: "newathena", label: "New Athena" },
+                { id: "hwo", label: "HWO" },
+                { id: "axis", label: "AXIS (Lynx-like)" },
                 { id: "wst", label: "WST" },
                 { id: "alma2040", label: "ALMA2040" },
                 { id: "atlast", label: "AtLAST" },
-                { id: "so_spt3g", label: "SO/\nSPT-3G" },
+                { id: "so_spt3g", label: "SO/SPT-3G" },
                 { id: "sims", label: "Sims" },
             ];
 
@@ -370,10 +402,14 @@
 
             function buildHeader(table) {
                 const thead = document.createElement("tr");
+                thead.className = "header-row";
                 for (const col of cols) {
                     const th = document.createElement("th");
                     th.className = "cell-label";
-                    th.textContent = col.label;
+                    const span = document.createElement("span");
+                    span.className = "cell-label-text";
+                    span.textContent = col.label;
+                    th.appendChild(span);
                     thead.appendChild(th);
                 }
                 table.appendChild(thead);
@@ -383,11 +419,12 @@
                 const container = document.getElementById(containerId);
                 container.innerHTML = "";
                 const headerSlot = document.createElement("div");
-                headerSlot.className = "label-slot";
+                headerSlot.className = "label-slot label-slot-header";
                 container.appendChild(headerSlot);
                 for (const row of rows) {
                     const slot = document.createElement("div");
                     slot.className = "label-slot";
+                    if (row.separator) slot.classList.add("row-separator");
                     slot.textContent = row.label;
                     container.appendChild(slot);
                 }
@@ -410,6 +447,7 @@
                     const tr = document.createElement("tr");
                     for (const col of cols) {
                         const td = document.createElement("td");
+                        if (row.separator) td.classList.add("row-separator");
                         const key = cellKey(row.id, col.id);
                         myVotes[key] = null;
 
@@ -448,6 +486,32 @@
                 const lastRect = lastSwatch.getBoundingClientRect();
                 bar.style.top = `${firstRect.top - wrapperRect.top}px`;
                 bar.style.height = `${lastRect.bottom - firstRect.top}px`;
+            }
+
+            function positionRowDivider() {
+                const table = document.getElementById("grid-table");
+                const divider = document.getElementById("row-divider");
+                const separatorCell = table.querySelector("td.row-separator");
+                if (!separatorCell) {
+                    divider.style.display = "none";
+                    return;
+                }
+                const outerWrapper = divider.parentElement;
+                const rowLabelsEl = document.getElementById("row-labels");
+                const outerRect = outerWrapper.getBoundingClientRect();
+                const labelsRect = rowLabelsEl.getBoundingClientRect();
+                const tableRect = table.getBoundingClientRect();
+                const sepRect = separatorCell.getBoundingClientRect();
+                // The separator row's top edge sits at the FAR side of the border-
+                // spacing gap above it — placing the line there puts all the gap
+                // above it and none below. Use the midpoint of that gap instead, so
+                // it's symmetric between the previous row and this one.
+                const prevRow = separatorCell.closest("tr").previousElementSibling;
+                const prevRect = prevRow ? prevRow.getBoundingClientRect() : sepRect;
+                const midY = (prevRect.bottom + sepRect.top) / 2;
+                divider.style.left = `${labelsRect.left - outerRect.left}px`;
+                divider.style.width = `${tableRect.right - labelsRect.left}px`;
+                divider.style.top = `${midY - outerRect.top}px`;
             }
 
             // Updates a percentage label's text+visibility smoothly. If it's already
@@ -628,6 +692,7 @@
             // ---------- firebase wiring ----------
             renderGrid();
             positionColorbar();
+            positionRowDivider();
             renderColorbarTicks();
 
             const banner = document.getElementById("status-banner");
